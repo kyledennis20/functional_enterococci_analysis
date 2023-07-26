@@ -100,6 +100,33 @@ get_all_data_for_station = function(station){
 
 setwd("D:/Hotel Research/Data")
 station_8771341_data = get_all_data_for_station(8771341)
+
+test = station_8771341_data %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d %H:%M"))
+#some of the dates have missing values, since the data table is in sequential order, we can just
+#give any missing values the value of the previous data + 6 minutes
+for(x in 1:length(test$date)){
+  if(is.na(test$date[x])){
+    test$date[x] = test$date[x - 1] + 6
+  }
+}
+#checks to see if any dates are repeated
+#is 0, there are not repeated dates
+sum(duplicated(test$date))
+#converts missing values to NAs
+test = test %>% mutate(air_temperature = na_if(air_temperature, ""), water_temperature = na_if(water_temperature, ""),
+                       wind = na_if(wind, ""), air_pressure = na_if(air_pressure, ""))
+#the beginning of the data has no measurements, so we remove all rows until the first measurement
+first_non_missing_value = which(!is.na(test$air_temperature))[1]
+test = test[-c(1:first_non_missing_value),]
+
+#fills in any missing dates in the data table
+test = test %>% complete(date = seq.POSIXt(first(test$date), last(test$date), by = "6 min"))
+#imputes missing values with the previous measurement
+#since many measurements are the same as the previous measurement, this is a reasonable imputation
+test = test %>% fill(air_temperature, water_temperature, wind, air_pressure, .direction = "down")
+
+write.csv(test, "test.csv")
+
 write.csv(station_8771341_data, "station_8771341_meteorological_data.csv")
 
 station_8771450_data = get_all_data_for_station(8771450)
@@ -110,3 +137,6 @@ write.csv(station_8771486_data, "station_8771486_meteorological_data.csv")
 
 station_8771972_data = get_all_data_for_station(8771972)
 write.csv(station_8771972_data, "station_8771972_meteorological_data.csv")
+
+
+station_9087044_data = get_all_data_for_station(9087044)
